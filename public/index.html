@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Radar - الإصدار الاحترافي</title>
+    <link rel="stylesheet" href="github-explorer.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="bg-animation">
+        <div class="stars"></div><div class="stars2"></div><div class="stars3"></div>
+    </div>
+    
+    <div class="main-container">
+        <header class="header">
+            <div class="logo-container">
+                <div class="logo-glow"></div>
+                <i class="fa-brands fa-github logo-icon"></i>
+            </div>
+            <h1 class="title">
+                <span class="title-explorer">GitHub</span><span class="title-gradient">Radar</span>
+            </h1>
+            <p class="subtitle">استكشف أعماق GitHub بتصميم عصري</p>
+        </header>
+
+        <div class="search-section">
+            <div class="search-box">
+                <div class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                <input type="text" id="usernameInput" class="search-input" placeholder="أدخل اسم المستخدم...">
+                <button class="search-btn" onclick="fetchProfile()">
+                    <span>استعلام</span>
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="loadingState" class="loading-container hidden">
+            <div class="loading-spinner">
+                <div class="spinner-ring"></div><div class="spinner-ring"></div><div class="spinner-ring"></div>
+                <i class="fa-brands fa-github spinner-icon"></i>
+            </div>
+            <p class="loading-text">جاري استدعاء البيانات من السحابة...</p>
+        </div>
+
+        <div id="resultContainer" class="result-container hidden">
+            <div class="profile-card">
+                <div class="card-glow"></div>
+                <div class="profile-header">
+                    <div class="avatar-container">
+                        <div class="avatar-ring"></div>
+                        <img id="u-avatar" src="" class="avatar">
+                        <div class="avatar-status"></div>
+                    </div>
+                    <div class="profile-info">
+                        <h2 id="u-name" class="profile-name"></h2>
+                        <a id="u-login" href="#" target="_blank" class="profile-username"></a>
+                        <p id="u-bio" class="profile-bio"></p>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card stat-followers">
+                        <i class="fa-solid fa-users stat-icon"></i>
+                        <span id="u-followers" class="stat-number">0</span>
+                        <span class="stat-label">متابع</span>
+                    </div>
+                    <div class="stat-card stat-following">
+                        <i class="fa-solid fa-user-check stat-icon"></i>
+                        <span id="u-following" class="stat-number">0</span>
+                        <span class="stat-label">يتابع</span>
+                    </div>
+                    <div class="stat-card stat-repos">
+                        <i class="fa-solid fa-code-branch stat-icon"></i>
+                        <span id="u-repos" class="stat-number">0</span>
+                        <span class="stat-label">مستودع</span>
+                    </div>
+                    <div class="stat-card stat-gists">
+                        <i class="fa-solid fa-file-code stat-icon"></i>
+                        <span id="u-gists" class="stat-number">0</span>
+                        <span class="stat-label">Gists</span>
+                    </div>
+                </div>
+
+                <div class="details-section">
+                    <div class="detail-item">
+                        <i class="fa-solid fa-location-dot detail-icon"></i>
+                        <div><div class="detail-label">الموقع</div><div id="u-location" class="detail-value"></div></div>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fa-solid fa-link detail-icon"></i>
+                        <div><div class="detail-label">الموقع الإلكتروني</div><a id="u-blog" href="#" target="_blank" class="detail-link">زيارة الموقع</a></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="repos-section">
+                <div class="section-header">
+                    <h3 class="section-title"><i class="fa-solid fa-star"></i> المستودعات النشطة</h3>
+                </div>
+                <div id="reposGrid" class="repos-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchProfile() {
+            const username = document.getElementById('usernameInput').value.trim();
+            if (!username) return;
+
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.getElementById('resultContainer').classList.add('hidden');
+
+            try {
+                const res = await fetch(`/api/full-profile/${username}`);
+                const data = await res.json();
+                if (!res.ok) throw new Error();
+
+                // تعبئة البيانات
+                document.getElementById('u-avatar').src = data.profile.avatar_url;
+                document.getElementById('u-name').innerText = data.profile.name || data.profile.login;
+                document.getElementById('u-login').innerText = `@${data.profile.login}`;
+                document.getElementById('u-login').href = data.profile.html_url;
+                document.getElementById('u-bio').innerText = data.profile.bio || 'لا يوجد وصف تعريفي.';
+                document.getElementById('u-followers').innerText = data.profile.followers;
+                document.getElementById('u-following').innerText = data.profile.following;
+                document.getElementById('u-repos').innerText = data.profile.public_repos;
+                document.getElementById('u-gists').innerText = data.profile.public_gists;
+                document.getElementById('u-location').innerText = data.profile.location || 'غير محدد';
+                document.getElementById('u-blog').href = data.profile.blog || '#';
+
+                // المستودعات
+                const reposGrid = document.getElementById('reposGrid');
+                reposGrid.innerHTML = data.repos.map(repo => `
+                    <a href="${repo.html_url}" target="_blank" class="repo-card">
+                        <div class="repo-header">
+                            <i class="fa-solid fa-book-bookmark repo-icon"></i>
+                            <span class="repo-name">${repo.name}</span>
+                        </div>
+                        <p class="repo-description">${repo.description || 'لا يوجد وصف متاح.'}</p>
+                        <div class="repo-footer">
+                            <div class="repo-language"><span class="language-dot" style="background:#58a6ff"></span>${repo.language || 'Code'}</div>
+                            <div class="repo-stats">
+                                <span><i class="fa-regular fa-star"></i> ${repo.stargazers_count}</span>
+                                <span><i class="fa-solid fa-code-branch"></i> ${repo.forks_count}</span>
+                            </div>
+                        </div>
+                    </a>
+                `).join('');
+
+                document.getElementById('resultContainer').classList.remove('hidden');
+            } catch (e) {
+                alert("لم يتم العثور على المستخدم!");
+            } finally {
+                document.getElementById('loadingState').classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
